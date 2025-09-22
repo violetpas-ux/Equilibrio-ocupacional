@@ -2,12 +2,15 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Registro de Rutina Diaria</title>
+  <title>EVALUANDO TU EQUILIBRO OCUPACIONAL</title>
+  <!-- Enlace a la fuente Bitcount Prop Double desde Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Bitcount+Prop+Double&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Bitcount Prop Double', sans-serif;
+      background-color: #f3e5f5; /* Fondo lila */
+      color: #333;
       margin: 30px;
-      background: #f9f9f9;
     }
     h2, h3 {
       color: #333;
@@ -30,30 +33,38 @@
       padding: 10px 15px;
       border: none;
       border-radius: 5px;
-      background: #4CAF50;
+      background: #0288d1;
       color: white;
       cursor: pointer;
     }
     button:hover {
-      background: #45a049;
+      background: #1565C0;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      background: #fff;
+      background: #81d4fa; /* Azul celeste */
       border-radius: 10px;
       overflow: hidden;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       margin-bottom: 20px;
     }
-    th, td {
-      border: 1px solid #ddd;
+    th {
+      background: #0288d1; /* Azul más oscuro */
+      color: white;
       padding: 12px;
       text-align: center;
     }
-    th {
-      background: #4CAF50;
-      color: white;
+    td {
+      color: #000;
+      padding: 12px;
+      text-align: center;
+    }
+    tr:nth-child(even) td {
+      background-color: #b3e5fc; /* Azul celeste claro filas pares */
+    }
+    tr:nth-child(odd) td {
+      background-color: #81d4fa; /* Azul celeste normal filas impares */
     }
     #resultado {
       font-weight: bold;
@@ -68,11 +79,11 @@
 </head>
 <body>
 
-  <h2>Registro de Rutina Diaria</h2>
+  <h2>EVALUANDO TU EQUILIBRIO OCUPACIONAL</h2>
 
   <form id="form">
     <input type="text" id="actividad" placeholder="Actividad realizada" required>
-    <input type="number" id="tiempo" placeholder="Tiempo (horas)" step="0.1" min="0.1" required>
+    <input type="number" id="tiempo" placeholder="Tiempo (horas)" min="0.1" step="0.1" required>
     <input type="number" id="importancia" placeholder="Importancia (1-10)" min="1" max="10" required>
     <input type="number" id="satisfaccion" placeholder="Satisfacción (1-10)" min="1" max="10" required>
     <select id="clasificacion" required>
@@ -103,13 +114,6 @@
   <script>
     const form = document.getElementById("form");
     const tabla = document.getElementById("tabla").querySelector("tbody");
-    const resultado = document.getElementById("resultado");
-
-    // Cargar desde localStorage al iniciar
-    window.onload = () => {
-      const actividadesGuardadas = JSON.parse(localStorage.getItem("actividades")) || [];
-      actividadesGuardadas.forEach(a => agregarFila(a));
-    };
 
     form.addEventListener("submit", function(e) {
       e.preventDefault();
@@ -120,15 +124,7 @@
       const satisfaccion = parseInt(document.getElementById("satisfaccion").value);
       const clasificacion = document.getElementById("clasificacion").value;
 
-      const nuevaActividad = { actividad, tiempo, importancia, satisfaccion, clasificacion };
-
-      agregarFila(nuevaActividad);
-      guardarEnLocalStorage();
-
-      form.reset();
-    });
-
-    function agregarFila({actividad, tiempo, importancia, satisfaccion, clasificacion}) {
+      // Crear fila
       const fila = document.createElement("tr");
       fila.innerHTML = `
         <td>${actividad}</td>
@@ -137,70 +133,50 @@
         <td>${satisfaccion}</td>
         <td>${clasificacion}</td>
       `;
-      tabla.appendChild(fila);
-    }
 
-    function guardarEnLocalStorage() {
-      const filas = tabla.querySelectorAll("tr");
-      let actividades = [];
-      filas.forEach(fila => {
-        actividades.push({
-          actividad: fila.children[0].innerText,
-          tiempo: parseFloat(fila.children[1].innerText),
-          importancia: parseInt(fila.children[2].innerText),
-          satisfaccion: parseInt(fila.children[3].innerText),
-          clasificacion: fila.children[4].innerText
-        });
-      });
-      localStorage.setItem("actividades", JSON.stringify(actividades));
-    }
+      tabla.appendChild(fila);
+
+      // Limpiar formulario
+      form.reset();
+    });
 
     function evaluar() {
       let filas = tabla.querySelectorAll("tr");
       if (filas.length === 0) {
-        resultado.innerText = "Añade al menos una actividad.";
-        resultado.className = "warning";
+        document.getElementById("resultado").innerText = "Añade al menos una actividad.";
         return;
       }
 
-      let totalHoras = 0;
+      let totalTiempo = 0;
       let sumaSatisfaccion = 0;
       let contador = 0;
-      let distribucion = { Ocio: 0, Productividad: 0, Autocuidado: 0 };
 
       filas.forEach(fila => {
-        let horas = parseFloat(fila.children[1].innerText);
+        let tiempo = parseFloat(fila.children[1].innerText);
         let satisfaccion = parseInt(fila.children[3].innerText);
-        let clasificacion = fila.children[4].innerText;
-
-        totalHoras += horas;
+        totalTiempo += tiempo;
         sumaSatisfaccion += satisfaccion;
         contador++;
-        distribucion[clasificacion] += horas;
       });
 
+      let totalHoras = totalTiempo;
       let mediaSatisfaccion = sumaSatisfaccion / contador;
-
-      let resumen = `Total: ${totalHoras.toFixed(1)} horas | 
-                     Satisfacción media: ${mediaSatisfaccion.toFixed(1)} | 
-                     Ocio: ${distribucion.Ocio.toFixed(1)}h, 
-                     Productividad: ${distribucion.Productividad.toFixed(1)}h, 
-                     Autocuidado: ${distribucion.Autocuidado.toFixed(1)}h`;
+      let resultado = document.getElementById("resultado");
 
       if (totalHoras < 14) {
-        resultado.innerText = "Necesitas registrar al menos 14 horas de actividades. " + resumen;
+        resultado.innerText = "Necesitas registrar al menos 14 horas de actividades.";
         resultado.className = "warning";
         return;
       }
 
       if (mediaSatisfaccion >= 9) {
-        resultado.innerText = "✅ EQUILIBRIO OCUPACIONAL. " + resumen;
+        resultado.innerText = "✅ SI EQUILIBRIO OCUPACIONAL";
         resultado.className = "ok";
       } else if (mediaSatisfaccion >= 6) {
-        resultado.innerText = "⚠️ LIGERO DESEQUILIBRIO OCUPACIONAL. " + resumen;
+        resultado.innerText = "⚠️ LIGERO DESEQUILIBRIO OCUPACIONAL";
         resultado.className = "warning";
       } else {
-        resultado.innerText = "❌ DESEQUILIBRIO OCUPACIONAL. " + resumen;
+        resultado.innerText = "❌ DESEQUILIBRIO OCUPACIONAL";
         resultado.className = "bad";
       }
     }
