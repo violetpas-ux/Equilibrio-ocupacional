@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro de Rutina Diaria</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f9f9f9;
+    }
+    h2, h3 {
+      color: #333;
+    }
+    form {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    input, select {
+      margin: 5px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      margin: 10px 5px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: center;
+    }
+    th {
+      background: #4CAF50;
+      color: white;
+    }
+    #resultado {
+      font-weight: bold;
+      font-size: 18px;
+      padding: 15px;
+      border-radius: 10px;
+    }
+    .ok { color: green; }
+    .warning { color: orange; }
+    .bad { color: red; }
+  </style>
+</head>
+<body>
+
+  <h2>Registro de Rutina Diaria</h2>
+
+  <form id="form">
+    <input type="text" id="actividad" placeholder="Actividad realizada" required>
+    <input type="number" id="tiempo" placeholder="Tiempo (horas)" step="0.1" min="0.1" required>
+    <input type="number" id="importancia" placeholder="Importancia (1-10)" min="1" max="10" required>
+    <input type="number" id="satisfaccion" placeholder="Satisfacción (1-10)" min="1" max="10" required>
+    <select id="clasificacion" required>
+      <option value="">-- Clasificación --</option>
+      <option value="Ocio">Ocio</option>
+      <option value="Productividad">Productividad</option>
+      <option value="Autocuidado">Autocuidado</option>
+    </select>
+    <button type="submit">Añadir a la tabla</button>
+  </form>
+
+  <table id="tabla">
+    <thead>
+      <tr>
+        <th>Actividad</th>
+        <th>Tiempo (horas)</th>
+        <th>Importancia</th>
+        <th>Satisfacción</th>
+        <th>Clasificación</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <button onclick="evaluar()">Evaluar equilibrio ocupacional</button>
+  <h3 id="resultado"></h3>
+
+  <script>
+    const form = document.getElementById("form");
+    const tabla = document.getElementById("tabla").querySelector("tbody");
+    const resultado = document.getElementById("resultado");
+
+    // Cargar desde localStorage al iniciar
+    window.onload = () => {
+      const actividadesGuardadas = JSON.parse(localStorage.getItem("actividades")) || [];
+      actividadesGuardadas.forEach(a => agregarFila(a));
+    };
+
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const actividad = document.getElementById("actividad").value;
+      const tiempo = parseFloat(document.getElementById("tiempo").value);
+      const importancia = parseInt(document.getElementById("importancia").value);
+      const satisfaccion = parseInt(document.getElementById("satisfaccion").value);
+      const clasificacion = document.getElementById("clasificacion").value;
+
+      const nuevaActividad = { actividad, tiempo, importancia, satisfaccion, clasificacion };
+
+      agregarFila(nuevaActividad);
+      guardarEnLocalStorage();
+
+      form.reset();
+    });
+
+    function agregarFila({actividad, tiempo, importancia, satisfaccion, clasificacion}) {
+      const fila = document.createElement("tr");
+      fila.innerHTML = `
+        <td>${actividad}</td>
+        <td>${tiempo}</td>
+        <td>${importancia}</td>
+        <td>${satisfaccion}</td>
+        <td>${clasificacion}</td>
+      `;
+      tabla.appendChild(fila);
+    }
+
+    function guardarEnLocalStorage() {
+      const filas = tabla.querySelectorAll("tr");
+      let actividades = [];
+      filas.forEach(fila => {
+        actividades.push({
+          actividad: fila.children[0].innerText,
+          tiempo: parseFloat(fila.children[1].innerText),
+          importancia: parseInt(fila.children[2].innerText),
+          satisfaccion: parseInt(fila.children[3].innerText),
+          clasificacion: fila.children[4].innerText
+        });
+      });
+      localStorage.setItem("actividades", JSON.stringify(actividades));
+    }
+
+    function evaluar() {
+      let filas = tabla.querySelectorAll("tr");
+      if (filas.length === 0) {
+        resultado.innerText = "Añade al menos una actividad.";
+        resultado.className = "warning";
+        return;
+      }
+
+      let totalHoras = 0;
+      let sumaSatisfaccion = 0;
+      let contador = 0;
+      let distribucion = { Ocio: 0, Productividad: 0, Autocuidado: 0 };
+
+      filas.forEach(fila => {
+        let horas = parseFloat(fila.children[1].innerText);
+        let satisfaccion = parseInt(fila.children[3].innerText);
+        let clasificacion = fila.children[4].innerText;
+
+        totalHoras += horas;
+        sumaSatisfaccion += satisfaccion;
+        contador++;
+        distribucion[clasificacion] += horas;
+      });
+
+      let mediaSatisfaccion = sumaSatisfaccion / contador;
+
+      let resumen = `Total: ${totalHoras.toFixed(1)} horas | 
+                     Satisfacción media: ${mediaSatisfaccion.toFixed(1)} | 
+                     Ocio: ${distribucion.Ocio.toFixed(1)}h, 
+                     Productividad: ${distribucion.Productividad.toFixed(1)}h, 
+                     Autocuidado: ${distribucion.Autocuidado.toFixed(1)}h`;
+
+      if (totalHoras < 14) {
+        resultado.innerText = "Necesitas registrar al menos 14 horas de actividades. " + resumen;
+        resultado.className = "warning";
+        return;
+      }
+
+      if (mediaSatisfaccion >= 9) {
+        resultado.innerText = "✅ EQUILIBRIO OCUPACIONAL. " + resumen;
+        resultado.className = "ok";
+      } else if (mediaSatisfaccion >= 6) {
+        resultado.innerText = "⚠️ LIGERO DESEQUILIBRIO OCUPACIONAL. " + resumen;
+        resultado.className = "warning";
+      } else {
+        resultado.innerText = "❌ DESEQUILIBRIO OCUPACIONAL. " + resumen;
+        resultado.className = "bad";
+      }
+    }
+  </script>
+
+</body>
+</html>
